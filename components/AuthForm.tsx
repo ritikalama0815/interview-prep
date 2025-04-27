@@ -3,16 +3,19 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-
 import { Button } from "@/components/ui/button"
-import {
-  Form,
-} from "@/components/ui/form"
+import { Form } from "@/components/ui/form"
 import Image from "next/image"
 import Link from "next/link"
 import { toast } from "sonner"
 import FormField from "./FormField"
 import { useRouter } from "next/navigation"
+
+import {
+  createUserWithEmailAndPassword,
+} from "firebase/auth";
+import { auth } from "@/firebase/client"
+import { signUp } from "@/lib/actions/auth.action"
 
 
 const authFormSchema = (type:FormType) => {
@@ -37,9 +40,25 @@ const AuthForm = ({type} : {type: FormType}) => {
   })
  
   // 2. Define a submit handler.
-  function onSubmit(values: z.infer<typeof formSchema>) {
+ async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       if(type === "sign-up") {
+
+        const{name, email, password} = values;
+
+        // Create a new user with email and password
+        const userCredentials = await createUserWithEmailAndPassword(auth, email, password);
+
+        const result = await signUp({
+          uid: userCredentials.user.uid,
+          name: name!, // name is required
+          email,
+          password,
+        })
+        if(!result?.success){
+          toast.error(result?.error);
+          return;
+        }
         toast.success("Registration successful!");
         router.push("/sign-in");
       } else{
